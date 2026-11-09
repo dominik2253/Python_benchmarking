@@ -1,0 +1,81 @@
+'''
+K čemu je program: Slouží pro zjišťování paměti a výpočetní výkon, který program používá.
+
+Jak obsluhovat program: Do funkce test_code() vložíme kod, který chceme testovat. Nastavíme kolikrát se má program pustit při měření. 
+
+Featury: Program eliminuje odchylku způsobenou kolísáním výkonu PC. Program se nejdříve několikrát projede, než spustí měření.
+
+Python: 3.15.0.
+'''
+#Knihovny=================================================================================
+import timeit
+import tracemalloc
+import statistics
+import gc
+#Nastavení================================================================================
+OPAKOVANI = 100_000
+POCET_MERENI = 10
+ZAHREVACI_BEHY = 2
+
+#Funkce do které vkládáme měřený kod======================================================
+def test_code():
+    # Vlož sem testovaný kód.
+    pass
+
+#Zahřátí==================================================================================
+print("Příprava benchmarku...")
+for _ in range(ZAHREVACI_BEHY):
+    for _ in range(OPAKOVANI):
+        test_code()
+#Odstraní nepotřebné objekty po zahřívání. Důležité hlavně, když máme vícero objektů.
+gc.collect()			
+#Měření času=============================================================================
+print("Měřím čas...")
+casy = timeit.repeat(
+    stmt="test_code()",
+    globals=globals(),
+    number=OPAKOVANI,
+    repeat=POCET_MERENI
+)
+#Výpočty
+nejlepsi_cas = min(casy)
+median_cas = statistics.median(casy)
+prumerny_cas = statistics.mean(casy)
+#Výpis výsledků
+print("\n=== VÝKON ===")
+print(f"Počet volání na měření: {OPAKOVANI:,}")
+print(f"Počet měření: {POCET_MERENI}")
+print(f"Nejlepší čas: {nejlepsi_cas:.6f} s")
+print(f"Medián času: {median_cas:.6f} s")
+print(f"Průměrný čas: {prumerny_cas:.6f} s")
+print(
+    f"Medián na jedno volání: "
+    f"{median_cas / OPAKOVANI * 1_000_000:.3f} µs"
+)
+#Měření paměti=======================================================================
+print("\nMěřím paměť...")
+gc.collect()
+tracemalloc.start()
+vychozi_pamet, _ = tracemalloc.get_traced_memory()
+tracemalloc.reset_peak()
+test_code()
+aktualni_pamet, maximalni_pamet = (
+    tracemalloc.get_traced_memory()
+)
+aktualni_narust = max(
+    0, aktualni_pamet - vychozi_pamet
+)
+spickovy_narust = max(
+    0, maximalni_pamet - vychozi_pamet
+)
+print("\n=== PAMĚŤ ===")
+print(
+    f"Aktuální nárůst: "
+    f"{aktualni_narust / 1024:.3f} KB"
+)
+print(
+    f"Špičkový nárůst: "
+    f"{spickovy_narust / 1024:.3f} KB"
+)
+tracemalloc.stop()
+print("\nBenchmark dokončen.")
