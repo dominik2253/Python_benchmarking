@@ -1,81 +1,116 @@
 '''
-K čemu je program: Slouží pro zjišťování paměti a výpočetní výkon, který program používá.
+K čemu je program: Slouží pro měření rychlosti a paměti kódu.
 
-Jak obsluhovat program: Do funkce test_code() vložíme kod, který chceme testovat. Nastavíme kolikrát se má program pustit při měření. 
+Jak obsluhovat program: 
+Do funkce test_code() vložíme kód, který chceme testovat. 
+MEASUREMENT_COUNT = Počet opakování programu v jedné sekvenci měření.
+REPEAT_COUNT = Určuje kolikrát se pustí sekvence a kolik bude měření.
+WARMUP_RUNS = Počet neměřených průběhů, které slouží k zahřátí.
 
-Featury: Program eliminuje odchylku způsobenou kolísáním výkonu PC. Program se nejdříve několikrát projede, než spustí měření.
+Featury: 
+Program omezuje odchylky způsobené kolísáním výkonu PC. Před měřením se nejdříve několikrát spustí testovaný kód.
+Program kód v průběhu jednoho měření pustí několikrát, aby byl rozdíl mezi kódy patrnější.
+Program provede měření několikrát, aby bylo více dat a dala se měřit odchylka
 
-Python: 3.15.0.
+Python version: 3.15.0.
+
+Parts of program:
+1. Libraries, modules, constants
+2. Function to input your code
+3. Warming up program
+4. Measuring time
+5. Measuring memory
 '''
-#Knihovny=================================================================================
+#------------------------------------------------------------------------
+#Knihovny
 import timeit
 import tracemalloc
 import statistics
 import gc
-#Nastavení================================================================================
-OPAKOVANI = 100_000
-POCET_MERENI = 10
-ZAHREVACI_BEHY = 2
 
-#Funkce do které vkládáme měřený kod======================================================
+#Nastavení
+MEASUREMENT_COUNT = 100_000
+REPEAT_COUNT = 10
+WARMUP_RUNS = 2
+#------------------------------------------------------------------------
+#Funkce pro vložení měřeného kódu
 def test_code():
-    # Vlož sem testovaný kód.
+    #Vlož sem testovaný kód.
     pass
-
-#Zahřátí==================================================================================
+#------------------------------------------------------------------------
+#Zahřátí
 print("Příprava benchmarku...")
-for _ in range(ZAHREVACI_BEHY):
-    for _ in range(OPAKOVANI):
+
+for _ in range(WARMUP_RUNS):
+    for _ in range(MEASUREMENT_COUNT):
         test_code()
-#Odstraní nepotřebné objekty po zahřívání. Důležité hlavně, když máme vícero objektů.
-gc.collect()			
-#Měření času=============================================================================
+
+#Odstranění nepotřebných objektů po zahřívání
+gc.collect()
+#------------------------------------------------------------------------
+#Měření času
 print("Měřím čas...")
-casy = timeit.repeat(
+
+execution_times = timeit.repeat(
     stmt="test_code()",
     globals=globals(),
-    number=OPAKOVANI,
-    repeat=POCET_MERENI
+    number=MEASUREMENT_COUNT,
+    repeat=REPEAT_COUNT
 )
+
 #Výpočty
-nejlepsi_cas = min(casy)
-median_cas = statistics.median(casy)
-prumerny_cas = statistics.mean(casy)
+best_time = min(execution_times)
+median_time = statistics.median(execution_times)
+average_time = statistics.mean(execution_times)
+
 #Výpis výsledků
-print("\n=== VÝKON ===")
-print(f"Počet volání na měření: {OPAKOVANI:,}")
-print(f"Počet měření: {POCET_MERENI}")
-print(f"Nejlepší čas: {nejlepsi_cas:.6f} s")
-print(f"Medián času: {median_cas:.6f} s")
-print(f"Průměrný čas: {prumerny_cas:.6f} s")
+print("\n=== Výkon ===")
+print(f"Počet volání na měření: {MEASUREMENT_COUNT:,}")
+print(f"Počet měření: {REPEAT_COUNT}")
+print(f"Nejlepší čas: {best_time:.6f} s")
+print(f"Medián času: {median_time:.6f} s")
+print(f"Průměrný čas: {average_time:.6f} s")
+
 print(
     f"Medián na jedno volání: "
-    f"{median_cas / OPAKOVANI * 1_000_000:.3f} µs"
+    f"{median_time / MEASUREMENT_COUNT * 1_000_000:.3f} µs"
 )
-#Měření paměti=======================================================================
+#------------------------------------------------------------------------
+#Měření paměti
 print("\nMěřím paměť...")
+
 gc.collect()
 tracemalloc.start()
-vychozi_pamet, _ = tracemalloc.get_traced_memory()
+
+initial_memory, _ = tracemalloc.get_traced_memory()
 tracemalloc.reset_peak()
+
 test_code()
-aktualni_pamet, maximalni_pamet = (
+
+current_memory, peak_memory = (
     tracemalloc.get_traced_memory()
 )
-aktualni_narust = max(
-    0, aktualni_pamet - vychozi_pamet
+
+current_increase = max(
+    0, current_memory - initial_memory
 )
-spickovy_narust = max(
-    0, maximalni_pamet - vychozi_pamet
+
+peak_increase = max(
+    0, peak_memory - initial_memory
 )
-print("\n=== PAMĚŤ ===")
+
+print("\n=== Paměť ===")
+
 print(
     f"Aktuální nárůst: "
-    f"{aktualni_narust / 1024:.3f} KB"
+    f"{current_increase / 1024:.3f} KB"
 )
+
 print(
     f"Špičkový nárůst: "
-    f"{spickovy_narust / 1024:.3f} KB"
+    f"{peak_increase / 1024:.3f} KB"
 )
+
 tracemalloc.stop()
+
 print("\nBenchmark dokončen.")
