@@ -1,20 +1,24 @@
 '''
-K čemu je program: Slouží pro měření rychlosti a paměti kódu.
+Purpose of a program: 
+    Measures the execution speed and memory allocations of Python code.
 
-Jak obsluhovat program: 
-Do funkce test_code() vložíme kód, který chceme testovat. 
-MEASUREMENT_COUNT = Počet opakování programu v jedné sekvenci měření.
-REPEAT_COUNT = Určuje kolikrát se pustí sekvence a kolik bude měření.
-WARMUP_RUNS = Počet neměřených průběhů, které slouží k zahřátí.
+How to use: 
+    Insert the code you want to benchmark into the test_code() function.
 
-Featury: 
-Program omezuje odchylky způsobené kolísáním výkonu PC. Před měřením se nejdříve několikrát spustí testovaný kód.
-Program kód v průběhu jednoho měření pustí několikrát, aby byl rozdíl mezi kódy patrnější.
-Program provede měření několikrát, aby bylo více dat a dala se měřit odchylka
+Configuration:
+    MEASUREMENT_COUNT: Number of function calls in one measurement.
+    REPEAT_COUNT: Number of measurement repetitions.
+    WARMUP_RUNS: Number of warmup sequences before measurements begin.
+
+Features: 
+    - Warmup runs to reduce the impact of initial performance variations.
+    - Multiple function calls per measurement to make performance differences easier to detect.
+    - Repeated measurements to collect more data and calculate statistics.
+    - Execution time and memory allocation tracking.
 
 Python version: 3.15.0.
 
-Parts of program:
+Program structure:
 1. Libraries, modules, constants
 2. Function to input your code
 3. Warming up program
@@ -22,33 +26,32 @@ Parts of program:
 5. Measuring memory
 '''
 #------------------------------------------------------------------------
-#Knihovny
 import timeit
-import tracemalloc
+import tracemalloc      #Track memory alocation made by Python.
 import statistics
 import gc
 
-#Nastavení
+#Benchmark configuration
 MEASUREMENT_COUNT = 100_000
 REPEAT_COUNT = 10
 WARMUP_RUNS = 2
 #------------------------------------------------------------------------
-#Funkce pro vložení měřeného kódu
+#Function that we measure.
 def test_code():
-    #Vlož sem testovaný kód.
+    '''Put your code that you want benchmarked here'''
     pass
 #------------------------------------------------------------------------
-#Zahřátí
+#Warmup
 print("Příprava benchmarku...")
 
 for _ in range(WARMUP_RUNS):
     for _ in range(MEASUREMENT_COUNT):
         test_code()
 
-#Odstranění nepotřebných objektů po zahřívání
+#Removal of unnecessary objects after warming up
 gc.collect()
 #------------------------------------------------------------------------
-#Měření času
+#Measuring time
 print("Měřím čas...")
 
 execution_times = timeit.repeat(
@@ -58,12 +61,12 @@ execution_times = timeit.repeat(
     repeat=REPEAT_COUNT
 )
 
-#Výpočty
+#Calculations
 best_time = min(execution_times)
 median_time = statistics.median(execution_times)
 average_time = statistics.mean(execution_times)
 
-#Výpis výsledků
+#Display results
 print("\n=== Výkon ===")
 print(f"Počet volání na měření: {MEASUREMENT_COUNT:,}")
 print(f"Počet měření: {REPEAT_COUNT}")
@@ -76,7 +79,7 @@ print(
     f"{median_time / MEASUREMENT_COUNT * 1_000_000:.3f} µs"
 )
 #------------------------------------------------------------------------
-#Měření paměti
+#Measuring memory
 print("\nMěřím paměť...")
 
 gc.collect()
